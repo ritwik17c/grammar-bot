@@ -177,11 +177,22 @@ async def analyze_grammar(text, sensitivity="normal"):
         elif sensitivity == "relaxed":
             prompt += "\n- Be relaxed: only flag clear grammatical errors, ignore minor issues."
 
+        # Scale max_tokens based on input length for optimal speed/quality balance
+        word_count = len(text.split())
+        if word_count <= 50:
+            max_tokens = 600
+        elif word_count <= 150:
+            max_tokens = 1200
+        elif word_count <= 300:
+            max_tokens = 2000
+        else:
+            max_tokens = 3000
+
         response = groq_client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "system", "content": prompt},
                       {"role": "user", "content": f"Analyze this message:\n\n{text}"}],
-            max_tokens=500, temperature=0.2)
+            max_tokens=max_tokens, temperature=0.2)
 
         import json
         raw = response.choices[0].message.content.strip().replace("```json", "").replace("```", "").strip()
@@ -363,13 +374,24 @@ async def handle_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
 
     # ── Private Chat Mode ──────────────────────────────────────────────────────
     if chat.type == "private":
-        if len(text.split()) < 4:
+        word_count = len(text.split())
+        if word_count < 4:
             await message.reply_text(
                 "Please send a complete sentence or paragraph and I'll check it for grammar! ✏️"
             )
             return
 
+        if word_count > 500:
+            await message.reply_text(
+                "⚠️ Your text is very long (500+ words).\n\n"
+                "For best results, please send it in smaller sections of 200-300 words at a time. ✂️"
+            )
+            return
+
+        # Show typing indicator — longer texts take a moment
         await message.reply_chat_action("typing")
+        if word_count > 100:
+            await message.reply_text("📖 Analyzing your text, please wait a moment...")
         result = await analyze_grammar(text, "normal")
         if not result:
             await message.reply_text("⚠️ Could not analyze the text. Please try again.")
