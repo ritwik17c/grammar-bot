@@ -139,7 +139,7 @@ def get_stats(chat_id=None):
 
 # ─── AI Grammar Check ──────────────────────────────────────────────────────────
 
-GRAMMAR_PROMPT = """You are an expert English grammar assistant for a school environment.
+GRAMMAR_PROMPT = """You are an expert English grammar and punctuation assistant for a school environment.
 
 Analyze the given message and respond ONLY in JSON format like this:
 {
@@ -156,7 +156,14 @@ Analyze the given message and respond ONLY in JSON format like this:
 Rules:
 - Set is_too_short=true if the message is only emojis, a single word, or fewer than 4 words
 - Set is_english=false if the message is not in English
-- Set has_errors=false if the message is grammatically correct
+- Set has_errors=false ONLY if the message is perfectly correct in grammar AND punctuation
+- Set has_errors=true for ANY of these punctuation issues:
+  * Missing capital letter at the start of a sentence
+  * Missing full stop, question mark, or exclamation mark at the end
+  * Missing comma where required (e.g. after introductory phrases, before conjunctions)
+  * Incorrect use of apostrophes (e.g. its vs it's, dont vs don't)
+  * Missing or extra spaces around punctuation
+  * Incorrect use of exclamation marks or question marks
 - Do NOT correct lists, bullet points, or non-sentence fragments
 - Always use formal language appropriate for a school setting
 - For vocabulary_suggestion: suggest formal alternatives (e.g., "students" instead of "kids")
@@ -325,14 +332,22 @@ async def announce_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 *Hello everyone!*\n\n"
         "I am your *English Grammar Assistant* 🎓\n\n"
-        "I silently monitor messages in this group and will *privately* send you grammar "
-        "suggestions whenever I spot a mistake — no one else in the group will see it!\n\n"
-        "✅ *To activate private suggestions, please take 10 seconds:*\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        "🌟 *What I can do for you:*\n\n"
+        "📌 *In this group:*\n"
+        "I silently read your messages and if I find any grammar or punctuation mistakes, "
+        "I will send you a *private correction* — only you will see it, nobody else in the group!\n\n"
+        "📌 *In private chat:*\n"
+        "You can send me any sentence or paragraph directly and I will instantly check it "
+        "for grammar, punctuation, vocabulary, and writing style!\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        "✅ *How to get started — 3 simple steps:*\n\n"
         f"1️⃣ Click this link 👉 {deep_link}\n"
-        "2️⃣ Press the *START* button in the chat that opens\n"
-        "3️⃣ That's it — I'll begin helping you right away!\n\n"
-        "🔒 _Your corrections are completely private. Only you will see them._\n\n"
-        "💡 _This bot is here to help, not to judge. Happy writing!_ ✍️",
+        "2️⃣ A chat with me will open — press the *START* button\n"
+        "3️⃣ That's it! I will now help you both here in the group and in private chat\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        "🔒 *Privacy:* Your corrections are completely private. No one else will see them.\n\n"
+        "💡 _I am here to help you improve, not to judge. Happy writing!_ ✍️",
         parse_mode="Markdown")
 
 async def handle_group_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -455,6 +470,39 @@ async def handle_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
     except Exception as e:
         logger.warning(f"Could not send private message to {user.id}: {e}")
 
+# ─── New Member Welcome ───────────────────────────────────────────────────────
+
+async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat = update.effective_chat
+    if not update.message or not update.message.new_chat_members:
+        return
+    bot_info = await context.bot.get_me()
+    deep_link = f"https://t.me/{bot_info.username}?start=hello"
+    for member in update.message.new_chat_members:
+        if member.is_bot:
+            continue
+        await update.message.reply_text(
+            f"👋 *Welcome to the group, {member.first_name}!*\n\n"
+            f"We have an *English Grammar Assistant* bot here to help you write better English 🎓\n\n"
+            f"━━━━━━━━━━━━━━━━━━━━━\n"
+            f"🌟 *What the bot does for you:*\n\n"
+            f"📌 *In this group:*\n"
+            f"It silently reads messages in the group. If it finds a grammar or punctuation mistake "
+            f"in your message, it sends you a *private correction* — only you will see it!\n\n"
+            f"📌 *In private chat:*\n"
+            f"You can also send any sentence or paragraph directly to the bot and it will "
+            f"instantly check your grammar, punctuation, vocabulary, and writing style!\n\n"
+            f"━━━━━━━━━━━━━━━━━━━━━\n"
+            f"✅ *Getting started is easy — just 3 steps:*\n\n"
+            f"1️⃣ Click this link 👉 {deep_link}\n"
+            f"2️⃣ A private chat with the bot will open — press the *START* button\n"
+            f"3️⃣ Done! The bot will now help you in the group and in private chat\n\n"
+            f"━━━━━━━━━━━━━━━━━━━━━\n"
+            f"🔒 *Privacy:* Your corrections are completely private. Nobody else in the group will see them.\n\n"
+            f"💡 _The bot is here to help you improve your English, not to embarrass you. Happy writing!_ ✍️",
+            parse_mode="Markdown"
+        )
+
 # ─── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
@@ -475,6 +523,7 @@ def main():
     app.add_handler(CommandHandler("report", report_cmd))
     app.add_handler(CommandHandler("announce", announce_cmd))
     app.add_handler(CallbackQueryHandler(settings_callback))
+    app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, welcome_new_member))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_group_message))
 
     webhook_url = os.environ.get("WEBHOOK_URL")
