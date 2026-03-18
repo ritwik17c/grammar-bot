@@ -191,10 +191,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"👋 Hello {user.first_name}!\n\n"
         "I am your *English Grammar Assistant* 📝\n\n"
-        "I monitor your group messages and will *privately* suggest grammar corrections "
-        "whenever I detect a mistake — so no one else sees it!\n\n"
-        "You are now registered. I will start sending you private suggestions. ✅\n\n"
-        "Your writing will improve every day! 🚀", parse_mode="Markdown")
+        "Here is what I can do for you:\n\n"
+        "📌 *In the group:* I silently monitor messages and send you *private* grammar suggestions whenever I spot a mistake\n\n"
+        "📌 *Right here privately:* Just send me any sentence or paragraph and I will instantly check it for grammar errors!\n\n"
+        "You are now registered. ✅\n\n"
+        "Try it now — send me any English sentence! 🚀",
+        parse_mode="Markdown")
 
 async def enable_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
@@ -339,13 +341,72 @@ async def handle_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
         return
     chat = update.effective_chat
     user = update.effective_user
+    text = message.text.strip()
+
+    if text.startswith("/"):
+        return
+
+    # ── Private Chat Mode ──────────────────────────────────────────────────────
+    if chat.type == "private":
+        if len(text.split()) < 4:
+            await message.reply_text(
+                "Please send a complete sentence or paragraph and I'll check it for grammar! ✏️"
+            )
+            return
+
+        await message.reply_chat_action("typing")
+        result = await analyze_grammar(text, "normal")
+        if not result:
+            await message.reply_text("⚠️ Could not analyze the text. Please try again.")
+            return
+
+        if not result.get("is_english"):
+            await message.reply_text("ℹ️ I can only check *English* text. Please send an English message.", parse_mode="Markdown")
+            return
+
+        if result.get("is_too_short"):
+            await message.reply_text("Please send a longer sentence so I can check it properly! ✏️")
+            return
+
+        if not result.get("has_errors"):
+            await message.reply_text(
+                "✅ *No errors found!*\n\nYour message is grammatically correct. Well done! 🌟",
+                parse_mode="Markdown"
+            )
+            return
+
+        corrected = result.get("corrected", "")
+        tip = result.get("tip", "")
+        vocab = result.get("vocabulary_suggestion", "")
+        tone = result.get("tone_suggestion", "")
+        mistake_type = result.get("mistake_type", "general")
+
+        reply = (
+            f"✏️ *Grammar Suggestion*\n\n"
+            f"*Original Message:*\n_{text}_\n\n"
+            f"*Suggested Correction:*\n{corrected}\n"
+        )
+        if tip:
+            reply += f"\n💡 *Tip:* {tip}\n"
+        if vocab:
+            reply += f"\n📚 *Vocabulary:* {vocab}\n"
+        if tone:
+            reply += f"\n🎓 *Formal Writing:* {tone}\n"
+        reply += "\n_Keep writing! Every correction helps you improve. 🌟_"
+
+        await message.reply_text(reply, parse_mode="Markdown")
+        log_correction(user.id, chat.id, text, corrected, mistake_type)
+        return
+
+    # ── Group Chat Mode ────────────────────────────────────────────────────────
     if chat.type not in ["group", "supergroup"]:
         return
+
     settings = get_group_settings(chat.id)
     if not settings["enabled"]:
         return
-    text = message.text.strip()
-    if len(text.split()) < 4 or text.startswith("/"):
+
+    if len(text.split()) < 4:
         return
 
     if not is_known_user(user.id):
