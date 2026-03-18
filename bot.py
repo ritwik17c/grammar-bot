@@ -298,14 +298,28 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if count == 0:
             add_bot_admin(user.id, user.username or user.first_name)
             logger.info(f"First user {user.id} auto-registered as bot admin")
+    # Send VKV logo first
+    try:
+        with open(LOGO_PATH, "rb") as logo:
+            await context.bot.send_photo(
+                chat_id=user.id,
+                photo=logo,
+                caption="🏫 *Vivekananda Kendra Vidyalaya, Nalbari*",
+                parse_mode="Markdown"
+            )
+    except Exception as e:
+        logger.warning(f"Could not send logo: {e}")
+
     await update.message.reply_text(
+        VKV_HEADER +
         f"👋 Hello {user.first_name}!\n\n"
         "I am your *English Grammar Assistant* 📝\n\n"
         "Here is what I can do for you:\n\n"
         "📌 *In the group:* I silently monitor messages and send you *private* grammar suggestions whenever I spot a mistake\n\n"
         "📌 *Right here privately:* Just send me any sentence or paragraph and I will instantly check it for grammar errors!\n\n"
         "You are now registered. ✅\n\n"
-        "Try it now — send me any English sentence! 🚀",
+        "Try it now — send me any English sentence! 🚀" +
+        VKV_FOOTER,
         parse_mode="Markdown")
 
 async def enable_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
