@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Grammar Assistant Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; color: #2d3748; }
+
+    header {
+      background: linear-gradient(135deg, #2b6cb0, #4299e1);
+      color: white; padding: 20px 32px;
+      display: flex; align-items: center; gap: 16px;
+    }
+    header h1 { font-size: 1.5rem; }
+    header p { font-size: 0.9rem; opacity: 0.85; }
+    .logo { font-size: 2rem; }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .card {
+      background: white; border-radius: 12px; padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      display: flex; align-items: center; gap: 16px;
+    }
+    .card-icon { font-size: 2rem; }
+    .card-value { font-size: 2rem; font-weight: 700; color: #2b6cb0; }
+    .card-label { font-size: 0.85rem; color: #718096; }
+
+    .charts { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 24px; }
+    .chart-box {
+      background: white; border-radius: 12px; padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+    .chart-box h3 { font-size: 1rem; margin-bottom: 16px; color: #4a5568; }
+
+    .tables { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .table-box {
+      background: white; border-radius: 12px; padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+    .table-box h3 { font-size: 1rem; margin-bottom: 16px; color: #4a5568; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th { text-align: left; padding: 8px; background: #ebf8ff; color: #2b6cb0; border-radius: 4px; }
+    td { padding: 8px; border-bottom: 1px solid #e2e8f0; }
+    tr:last-child td { border-bottom: none; }
+    .badge {
+      display: inline-block; padding: 2px 10px; border-radius: 99px;
+      font-size: 0.75rem; font-weight: 600;
+    }
+    .badge-grammar { background: #fed7d7; color: #c53030; }
+    .badge-punctuation { background: #fefcbf; color: #b7791f; }
+    .badge-vocabulary { background: #c6f6d5; color: #276749; }
+    .badge-structure { background: #e9d8fd; color: #6b46c1; }
+    .badge-other { background: #e2e8f0; color: #4a5568; }
+
+    .refresh-btn {
+      background: #2b6cb0; color: white; border: none;
+      padding: 10px 20px; border-radius: 8px; cursor: pointer;
+      font-size: 0.9rem; margin-bottom: 20px;
+    }
+    .refresh-btn:hover { background: #2c5282; }
+    .last-updated { font-size: 0.8rem; color: #a0aec0; margin-left: 12px; }
+
+    @media (max-width: 700px) {
+      .charts, .tables { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🎓</div>
+  <div>
+    <h1>Grammar Assistant Dashboard</h1>
+    <p>VKV — Real-time correction statistics</p>
+  </div>
+</header>
+
+<div class="container">
+  <div>
+    <button class="refresh-btn" onclick="loadData()">🔄 Refresh</button>
+    <span class="last-updated" id="lastUpdated"></span>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="cards">
+    <div class="card">
+      <div class="card-icon">📅</div>
+      <div>
+        <div class="card-value" id="todayCount">—</div>
+        <div class="card-label">Today's Corrections</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-icon">📆</div>
+      <div>
+        <div class="card-value" id="weekCount">—</div>
+        <div class="card-label">This Week</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-icon">🗂</div>
+      <div>
+        <div class="card-value" id="totalCount">—</div>
+        <div class="card-label">All Time</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-icon">👤</div>
+      <div>
+        <div class="card-value" id="userCount">—</div>
+        <div class="card-label">Registered Users</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts">
+    <div class="chart-box">
+      <h3>📊 Daily Corrections (Last 7 Days)</h3>
+      <canvas id="dailyChart" height="100"></canvas>
+    </div>
+    <div class="chart-box">
+      <h3>❌ Mistake Types</h3>
+      <canvas id="mistakeChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Tables -->
+  <div class="tables">
+    <div class="table-box">
+      <h3>👤 Most Corrected Users</h3>
+      <table>
+        <thead><tr><th>#</th><th>User</th><th>Corrections</th></tr></thead>
+        <tbody id="usersTable"><tr><td colspan="3">Loading...</td></tr></tbody>
+      </table>
+    </div>
+    <div class="table-box">
+      <h3>📋 Recent Corrections</h3>
+      <table>
+        <thead><tr><th>Type</th><th>Original</th></tr></thead>
+        <tbody id="recentTable"><tr><td colspan="2">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+let dailyChart, mistakeChart;
+
+async function loadData() {
+  try {
+    const res = await fetch('/api/stats');
+    const data = await res.json();
+
+    // Cards
+    document.getElementById('todayCount').textContent = data.today ?? 0;
+    document.getElementById('weekCount').textContent = data.week ?? 0;
+    document.getElementById('totalCount').textContent = data.total ?? 0;
+    document.getElementById('userCount').textContent = data.user_count ?? 0;
+    document.getElementById('lastUpdated').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+
+    // Daily chart
+    const days = data.daily.map(d => d[0]);
+    const counts = data.daily.map(d => d[1]);
+    if (dailyChart) dailyChart.destroy();
+    dailyChart = new Chart(document.getElementById('dailyChart'), {
+      type: 'bar',
+      data: {
+        labels: days,
+        datasets: [{
+          label: 'Corrections',
+          data: counts,
+          backgroundColor: '#4299e1',
+          borderRadius: 6
+        }]
+      },
+      options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+    });
+
+    // Mistake types pie chart
+    const labels = data.common.map(d => d[0]);
+    const values = data.common.map(d => d[1]);
+    const colors = ['#fc8181','#f6ad55','#68d391','#76e4f7','#b794f4'];
+    if (mistakeChart) mistakeChart.destroy();
+    mistakeChart = new Chart(document.getElementById('mistakeChart'), {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{ data: values, backgroundColor: colors, borderWidth: 2 }]
+      },
+      options: { plugins: { legend: { position: 'bottom' } }, cutout: '60%' }
+    });
+
+    // Users table
+    const usersBody = document.getElementById('usersTable');
+    if (data.top_users.length === 0) {
+      usersBody.innerHTML = '<tr><td colspan="3" style="color:#a0aec0">No data yet</td></tr>';
+    } else {
+      usersBody.innerHTML = data.top_users.map((u, i) =>
+        `<tr><td>${i+1}</td><td>@${u[0] || 'Unknown'}</td><td><strong>${u[1]}</strong></td></tr>`
+      ).join('');
+    }
+
+    // Recent corrections table
+    const recentBody = document.getElementById('recentTable');
+    if (data.recent.length === 0) {
+      recentBody.innerHTML = '<tr><td colspan="2" style="color:#a0aec0">No data yet</td></tr>';
+    } else {
+      recentBody.innerHTML = data.recent.map(r => {
+        const type = r[0] || 'other';
+        const badgeClass = `badge-${['grammar','punctuation','vocabulary','structure'].includes(type) ? type : 'other'}`;
+        const original = r[1].length > 40 ? r[1].substring(0, 40) + '…' : r[1];
+        return `<tr><td><span class="badge ${badgeClass}">${type}</span></td><td>${original}</td></tr>`;
+      }).join('');
+    }
+
+  } catch (err) {
+    console.error('Failed to load stats:', err);
+    document.getElementById('lastUpdated').textContent = '⚠️ Could not connect to bot server';
+  }
+}
+
+loadData();
+setInterval(loadData, 30000); // Auto-refresh every 30 seconds
+</script>
+</body>
+</html>
