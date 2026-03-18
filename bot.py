@@ -419,14 +419,16 @@ async def announce_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     bot_info = await context.bot.get_me()
     bot_username = bot_info.username
 
+    deep_link = f"https://t.me/{bot_username}?start=hello"
+
     announcement = (
         "👋 *Hello everyone!*\n\n"
         "I am your *English Grammar Assistant* 🎓\n\n"
         "I silently monitor messages in this group and will *privately* send you grammar "
         "suggestions whenever I spot a mistake — no one else in the group will see it!\n\n"
-        "✅ *To activate private suggestions, please take 10 seconds to do this:*\n\n"
-        f"1️⃣ Click here 👉 @{bot_username}\n"
-        "2️⃣ Press the *Start* button\n"
+        "✅ *To activate private suggestions, please take 10 seconds:*\n\n"
+        f"1️⃣ Click this link 👉 {deep_link}\n"
+        "2️⃣ Press the *START* button in the chat that opens\n"
         "3️⃣ That's it — I'll begin helping you right away!\n\n"
         "🔒 _Your corrections are completely private. Only you will see them._\n\n"
         "💡 _This bot is here to help, not to judge. Happy writing!_ ✍️"
