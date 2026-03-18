@@ -1,84 +1,115 @@
-# 🤖 Grammar Correction Telegram Bot (Groq + Llama 3)
+# 🎓 VKV Grammar Assistant Bot v2
 
-A Telegram bot powered by **Groq AI (Llama 3.3 70B)** that checks and corrects English grammar in real time — completely free!
+A smart Telegram group grammar assistant that privately corrects users' English messages — powered by Groq AI (Llama 3.3 70B).
 
 ---
 
 ## Features
 
-- ✅ Instant grammar correction for any text
-- 📝 Explains what was changed and why
-- 🤗 Friendly, encouraging tone
-- ⚡ Powered by Groq (ultra-fast, free tier)
-- Supports `/start`, `/help`, and `/check <text>` commands
+- 👁️ Monitors group messages silently
+- 📩 Sends private grammar corrections (never publicly)
+- 🌐 Detects English language automatically
+- 🧠 AI-powered grammar, punctuation & vocabulary suggestions
+- 🎓 Formal writing tips for teachers
+- 👋 Onboards new users with a welcome message
+- ⚙️ Admin controls (enable/disable, sensitivity, explanations)
+- 📊 Statistics & logging with SQLite
 
 ---
 
-## Environment Variables Needed
+## Commands
 
-| Variable | Where to get it |
-|----------|----------------|
-| `TELEGRAM_BOT_TOKEN` | From @BotFather on Telegram |
+| Command | Who | Description |
+|---------|-----|-------------|
+| `/start` | Any user | Register to receive private corrections |
+| `/enable` | Admin only | Enable bot in the group |
+| `/disable` | Admin only | Disable bot in the group |
+| `/settings` | Admin only | Adjust sensitivity and explanations |
+| `/stats` | Anyone | View correction statistics |
+
+---
+
+## Setup
+
+### Step 1 — Disable Bot Privacy Mode (IMPORTANT)
+
+By default, Telegram bots can't read group messages. You must disable privacy mode:
+
+1. Open @BotFather on Telegram
+2. Send `/mybots` → select your bot
+3. Click **Bot Settings → Group Privacy → Turn Off**
+4. Confirm — the bot can now read group messages ✅
+
+### Step 2 — Environment Variables
+
+| Variable | Value |
+|----------|-------|
+| `TELEGRAM_BOT_TOKEN` | From @BotFather |
 | `GROQ_API_KEY` | From console.groq.com |
+| `WEBHOOK_URL` | Your Railway public URL (optional) |
+
+### Step 3 — Deploy on Railway
+
+1. Push all 4 files to your GitHub repo (replace old files)
+2. Go to Railway → your project → Variables tab
+3. Add `TELEGRAM_BOT_TOKEN` and `GROQ_API_KEY`
+4. Optionally add `WEBHOOK_URL` = your Railway public domain
+5. Redeploy ✅
+
+### Step 4 — Add Bot to Your Group
+
+1. Open your Telegram group
+2. Click group name → Edit → Administrators → Add Admin
+3. Search for your bot → add it
+4. Give it permission to **read messages**
+5. Send `/enable` in the group
+
+### Step 5 — Users Register
+
+Each group member must start the bot once:
+1. They search for your bot on Telegram
+2. Click **Start**
+3. Bot registers them for private corrections ✅
 
 ---
 
-## Deploy on Railway (Free)
+## How It Works
 
-1. Push these 4 files to a GitHub repository
-2. Go to [railway.app](https://railway.app) → sign up with GitHub
-3. Click **New Project → Deploy from GitHub repo**
-4. Select your repository
-5. Go to **Variables** tab and add:
-   - `TELEGRAM_BOT_TOKEN` = your token
-   - `GROQ_API_KEY` = your Groq key
-6. Railway auto-detects the Dockerfile and deploys ✅
-
----
-
-## Run Locally
-
-```bash
-pip install -r requirements.txt
-
-export TELEGRAM_BOT_TOKEN="your_bot_token"
-export GROQ_API_KEY="your_groq_key"
-
-python bot.py
+```
+User sends message in group
+        ↓
+Bot checks: Is the group enabled?
+        ↓
+Bot checks: Is user registered?
+  → No: Send onboarding message
+        ↓
+Bot sends message to Groq AI
+        ↓
+AI checks: English? Has errors? Too short?
+        ↓
+If errors found → Send private correction to user
+        ↓
+Log correction to SQLite database
 ```
 
-## Run with Docker
+---
 
-```bash
-docker build -t grammar-bot .
+## Example Private Message Sent to User
 
-docker run -d \
-  -e TELEGRAM_BOT_TOKEN="your_bot_token" \
-  -e GROQ_API_KEY="your_groq_key" \
-  grammar-bot
 ```
+✏️ Grammar Suggestion
 
----
+Original Message:
+She don't likes to come in school everyday.
 
-## Usage
+Suggested Correction:
+She doesn't like to come to school every day.
 
-| Action | What to do |
-|--------|-----------|
-| Start the bot | Send `/start` |
-| Get help | Send `/help` |
-| Check inline text | `/check I goes to school` |
-| Check any message | Just type and send it! |
+💡 Tip: Use "doesn't" for third-person singular. "Every day" is two words when used as an adverb.
 
----
+📚 Vocabulary: Consider "attend school" instead of "come in school".
 
-## Example
+🎓 Formal Writing: "She does not attend school every day" is more appropriate in formal reports.
 
-**You send:**
-> She dont like apples and her friend dont neither.
-
-**Bot replies:**
-> ✅ Corrected: She doesn't like apples and her friend doesn't either.
->
-> 📝 Changes made:
-> - "dont" → "doesn't" (third-person singular requires "doesn't")
-> - "dont neither" → "doesn't either" ("either" is correct in this context)
+Keep writing! Every correction helps you improve. 🌟
+```
